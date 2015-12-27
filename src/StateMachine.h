@@ -13,30 +13,47 @@
 
 namespace tinycraft
 {
-    template <class Owner>
+    template <class T>
     class StateMachineFactory;
     
-    template <class Owner>
+    template <class T>
     class StateMachine
     {
     private:
-        friend class StateMachineFactory<Owner>;
+        friend class StateMachineFactory<T>;
         
-        Owner *_owner;
-        std::map<std::string, State<Owner>*> _stateMap;
-        State<Owner> *_curState;
+        T *_owner;
+        std::map<std::string, State<T>*> _stateMap;
+        State<T> *_globalState;
+        State<T> *_curState;
         
-        void handleMessage(Telegram<Owner> *telegram)
+        void handleMessage(Telegram<T> *telegram)
         {
-            if (_curState) {
-                if (_curState->onMessage(telegram)) {
-                    
+            if (_globalState) {
+                if (_globalState->onMessage(telegram)) {
+                    return;
                 }
+            }
+            
+            if (_curState) {
+                _curState->onMessage(telegram);
+            }
+        }
+        
+        void update(float dt)
+        {
+            if (_globalState) {
+                _globalState->update(_owner, dt);
+            }
+            
+            if (_curState) {
+                _curState->update(_owner, dt);
             }
         }
         
         StateMachine() :
         _owner(nullptr),
+        _globalState(nullptr),
         _curState(nullptr)
         {
             
@@ -45,17 +62,26 @@ namespace tinycraft
     public:
         ~StateMachine()
         {
-            
-        }
-        
-        void update(float dt)
-        {
-            if (_curState) {
-                _curState->update(dt);
+            auto result = _stateMap.begin();
+            for (; result != _stateMap.end(); result++) {
+                delete result->second;
             }
+            
+            _stateMap.clear();
         }
         
-        void registerState(const std::string &name, State<Owner> *state)
+        void setGlobalState(State<T> *state)
+        {
+            if (_globalState) {
+                _globalState->exit(_owner);
+            }
+            
+            assert(state);
+            _globalState = state;
+            _globalState->enter(_owner);
+        }
+        
+        void registerState(const std::string &name, State<T> *state)
         {
             assert(state);
             assert(state->init(name));

@@ -11,18 +11,22 @@
 
 namespace tinycraft
 {
-    template <class Owner>
+    template <class T>
     struct Telegram
     {
-        Owner *sender;
-        Owner *receiver;
+        T *sender;
+        T *receiver;
         std::string message;
         void *data;
+        float delay;
+        float timer;
 
         Telegram() :
         sender(nullptr),
         receiver(nullptr),
-        data(nullptr)
+        data(nullptr),
+        delay(0.0),
+        timer(0.0)
         {
             
         }

@@ -8,21 +8,24 @@
 #define MESSAGEDISPATCHER_H
 
 #include "StateMachineFactory.h"
+#include <set>
 #include <cassert>
 
 namespace tinycraft
 {
-	template <class Owner>
+	template <class T>
 	class MessageDispatcher
     {
     private:
-        StateMachineFactory<Owner> *_factory;
+        std::set<Telegram<T>*> _telegramSet;
         
-        MessageDispatcher() :
-        _factory(nullptr)
+        MessageDispatcher()
         {
             
         }
+        
+        MessageDispatcher(const MessageDispatcher&);
+        MessageDispatcher& operator =(const MessageDispatcher&);
         
 	public:
         ~MessageDispatcher()
@@ -30,28 +33,55 @@ namespace tinycraft
             
         }
         
-        static MessageDispatcher* create(StateMachineFactory<Owner> *factory) {
-            assert(factory);
-            
-            auto dispatcher = new MessageDispatcher();
-            dispatcher->_factory = factory;
-            return dispatcher;
+        static MessageDispatcher* getInstance()
+        {
+            static MessageDispatcher instance;
+            return &instance;
         }
         
-		void dispatchMessage(Owner *sender, Owner *receiver, const std::string &message, void *data = nullptr)
+        void update(float dt)
+        {
+            auto iter = _telegramSet.begin();
+            for (; iter != _telegramSet.end();) {
+                auto telegram = *iter;
+                
+                telegram->timer += dt;
+                if (telegram->timer >= telegram->delay) {
+                    auto instance = tinycraft::StateMachineFactory<Entity>::getInstance();
+                    instance->handleMessage(telegram);
+                    delete telegram;
+                    
+                    iter = _telegramSet.erase(iter);
+                }
+                else {
+                    iter++;
+                }
+            }
+        }
+        
+		void dispatchMessage(T *sender, T *receiver, const std::string &message, void *data = nullptr, float delay = 0.0f)
         {
 			assert(sender || receiver);
 
-			Telegram<Owner> *telegram = new Telegram<Owner>();
+			Telegram<T> *telegram = new Telegram<T>();
 			telegram->sender = sender;
 			telegram->receiver = receiver;
 			telegram->message = message;
 			telegram->data = data;
+            telegram->delay = delay;
+            telegram->timer = 0.0f;
             
-            _factory->handleMessage(telegram);
-            
-            delete telegram;
-		}
+            if (delay > 0.0f) {
+                _telegramSet.insert(telegram);
+            }
+            else {
+                auto instance = tinycraft::StateMachineFactory<Entity>::getInstance();
+                instance->handleMessage(telegram);
+                
+                delete telegram;
+
+            }
+        }
 	};
 }
 

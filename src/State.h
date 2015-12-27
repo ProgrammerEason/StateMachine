@@ -11,14 +11,14 @@
 
 namespace tinycraft
 {
-    template <class Owner>
+    template <class T>
     class StateMachine;
     
-    template <class Owner>
+    template <class T>
     class State
     {
     private:
-        friend class StateMachine<Owner>;
+        friend class StateMachine<T>;
         std::string _name;
         
     protected:
@@ -34,7 +34,7 @@ namespace tinycraft
             
         }
         
-        ~State()
+        virtual ~State()
         {
             
         }
@@ -44,10 +44,10 @@ namespace tinycraft
             return _name;
         }
         
-        virtual void enter(Owner *_owner) = 0;
-        virtual void update(Owner *_owner, float dt) = 0;
-        virtual void exit(Owner *_owner) = 0;
-        virtual bool onMessage(Telegram<Owner> *telegram)
+        virtual void enter(T *entity) = 0;
+        virtual void update(T *entity, float dt) = 0;
+        virtual void exit(T *entity) = 0;
+        virtual bool onMessage(Telegram<T> *telegram)
         {
             return true;
         }

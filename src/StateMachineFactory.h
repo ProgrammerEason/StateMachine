@@ -13,17 +13,17 @@
 
 namespace tinycraft
 {
-    template <class Owner>
+    template <class T>
     class MessageDispatcher;
     
-    template <class Owner>
+    template <class T>
     class StateMachineFactory
     {
     private:
-        friend class MessageDispatcher<Owner>;
-        std::map<Owner*, StateMachine<Owner>*> _stateMachineMap;
+        friend class MessageDispatcher<T>;
+        std::map<T*, StateMachine<T>*> _stateMachineMap;
         
-        void handleMessage(Telegram<Owner> *telegram)
+        void handleMessage(Telegram<T> *telegram)
         {
             auto result = _stateMachineMap.find(telegram->receiver);
             if (result != _stateMachineMap.end()) {
@@ -36,32 +36,43 @@ namespace tinycraft
             
         }
         
+        StateMachineFactory(const StateMachineFactory&);
+        StateMachineFactory& operator =(const StateMachineFactory&);
+        
     public:
         ~StateMachineFactory()
         {
             
         }
         
-        static StateMachineFactory* create()
+        static StateMachineFactory* getInstance()
         {
-            auto factory = new StateMachineFactory();
-            return factory;
+            static StateMachineFactory instance;
+            return &instance;
         }
         
-        StateMachine<Owner>* createStateMachine(Owner *owner)
+        void update(float dt)
+        {
+            auto iter = _stateMachineMap.begin();
+            for (; iter != _stateMachineMap.end(); iter++) {
+                iter->second->update(dt);
+            }
+        }
+        
+        StateMachine<T>* createStateMachine(T *owner)
         {
             if (!owner) {
                 return nullptr;
             }
             
-            auto stateMachine = new StateMachine<Owner>();
+            auto stateMachine = new StateMachine<T>();
             stateMachine->_owner = owner;
             
             _stateMachineMap.insert(std::make_pair(owner, stateMachine));
             return stateMachine;
         }
         
-        void destroyStateMachine(Owner *owner)
+        void destroyStateMachine(T *owner)
         {
             auto result = _stateMachineMap.find(owner);
             if (result == _stateMachineMap.end()) {
